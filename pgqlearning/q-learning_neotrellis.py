@@ -1,19 +1,22 @@
-"""
-modified q-leanring_sensehat.py
-removed all unnecessary libraries
-removed graphics displayed on screen
-"""
+##q-learning libararies
 
-##import numpy as np
-from ulab import numpy as np
-
-#from PIL import Image
-#import cv2
-#import matplotlib.pyplot as plt
-##import pickle
-import ujson as json
-##from matplotlib import style
+import numpy as np
+from PIL import Image
+import cv2
+import matplotlib.pyplot as plt
+import pickle
+from matplotlib import style
 import time
+
+##sensehat
+#from sense_hat import SenseHat
+from time import sleep
+
+#sense = SenseHat()
+##sense.flip_h()
+##sense.flip_v()
+
+##neotrellis libraries
 import random
 import board
 from board import SCL, SDA
@@ -35,8 +38,11 @@ trelli = [
 
 trellis = MultiTrellis(trelli)
 
+# Set the brightness value (0 to 1.0)
+trellis.brightness = 0.1
 
-# some color definitions
+
+#neotrellis some color definitions
 OFF = (0, 0, 0)
 RED = (255, 0, 0)
 YELLOW = (255, 150, 0)
@@ -45,10 +51,22 @@ BLUE = (0, 0, 255)
 PURPLE = (180, 0, 255)
 WHITE = (127, 127, 127)
 
-##red = (255, 0, 0)
-##green = (0, 128, 0)
-##blue = (0, 0, 255)
-##clear = (0, 0, 0)
+##q-learning
+red = (255, 0, 0)
+green = (0, 128, 0)
+blue = (0, 0, 255)
+clear = (0, 0, 0)
+
+# connect a button to the NeoTrellis board
+button_pin = board.D6
+button = digitalio.DigitalInOut(button_pin)
+button.direction = digitalio.Direction.INPUT
+button.pull = digitalio.Pull.UP
+
+global button_colors
+
+# Initialize color state for each button
+#button_colors = [[OFF for y in range(8)] for x in range(8)]
 
 style.use("ggplot")
 
@@ -129,6 +147,7 @@ class Blob:
         elif self.y > SIZE-1:
             self.y = SIZE-1
 
+
 if start_q_table is None:
     # initialize the q-table#
     q_table = {}
@@ -140,7 +159,8 @@ if start_q_table is None:
 
 else:
     with open(start_q_table, "rb") as f:
-        q_table = ujson.load(f)
+        q_table = pickle.load(f)
+
 
 # can look up from Q-table with: print(q_table[((-9, -2), (3, 9))]) for example
 
@@ -193,48 +213,64 @@ for episode in range(HM_EPISODES):
         q_table[obs][action] = new_q
 
         if show:
-            ##env = np.zeros((SIZE, SIZE, 3), dtype=np.uint8)  # starts an rbg of our size
+            env = np.zeros((SIZE, SIZE, 3), dtype=np.uint8)  # starts an rbg of our size
             ##sensehat: clear
             ##pixels = [clear] * 64
-            button_colors = [[OFF for y in range(8)] for x in range(8)] 
-            trellis.brightness = 0.1
 
-            ##env[food.x][food.y] = d[FOOD_N]  # sets the food location tile to green color
+            ##neotrellix clear
+            for y in range(8):
+                for x in range(8):
+                    trellis.color(x, y, OFF)
+                    time.sleep(0.000000005)
+
+            env[food.x][food.y] = d[FOOD_N]  # sets the food location tile to green color
             ##sensehat: food is green
             foodPos = [food.y, food.x]
             ##pixels[foodPos[1] * 8 + foodPos[0]] = green
-            ##trellis.color[food.y, food.x, GREEN]
-            button_colors[food.x][food.y] = GREEN 
+            ##trellis.color(food.y, food.x, OFF)
+            trellis.color(food.y, food.x, GREEN)
+            ##button_colors[food.x][food.y] = GREEN
 
-
-            ##env[player.x][player.y] = d[PLAYER_N]  # sets the player tile to blue
+            env[player.x][player.y] = d[PLAYER_N]  # sets the player tile to blue
             ##sensehat: player is blue
             playerPos = [player.y, player.x]
             ##pixels[playerPos[1] * 8 + playerPos[0]] = blue
-            button_color[food.x][food.y] = BLUE
+            ##trellis.color(player.y, player.x, OFF)
+            trellis.color(player.y, player.x, BLUE)
+            ##button_colors[food.x][food.y] = BLUE
 
-            ##env[enemy.x][enemy.y] = d[ENEMY_N]  # sets the enemy location to red
+            env[enemy.x][enemy.y] = d[ENEMY_N]  # sets the enemy location to red
             ##sensehat: player is red
             enemyPos = [enemy.y, enemy.x]
-            pixels[enemyPos[1] * 8 + enemyPos[0]] = red
-            button_color[food.x][food.y] = RED
+            ##pixels[enemyPos[1] * 8 + enemyPos[0]] = red
+            ##trellis.color(enemy.y, enemy.x, OFF)
+            trellis.color(enemy.y, enemy.x, RED)
+            ##button_colors[food.x][food.y] = RED
 
             ##sense.set_pixels(pixels)
+            ##trellis.show()
 
-            trellis.sync()
-            time.sleep(0.02)
+            ##trellis.color(food.y, food.x, OFF)
+            ##trellis.color(player.y, player.x, OFF)
+            ##trellis.color(enemy.y, enemy.x, OFF)
 
-            ##img = Image.fromarray(env, 'RGB')  # reading to rgb. Apparently. Even tho color definitions are bgr. ???
+            ##trellis.sync()
+            ##time.sleep(0.15)
+            ##time.sleep(0.15)
 
-            ##img = img.resize((300, 300), resample=Image.BOX)  # resizing so we can see our agent in all its glory.
-            ##cv2.imshow("image", np.array(img))  # show it!
-
-            ##if reward == FOOD_REWARD or reward == -ENEMY_PENALTY:  # crummy code to hang at the end if we reach abrupt end for good reasons or not.
-            ##    if cv2.waitKey(500) & 0xFF == ord('q'):
-            ##        break
-            ##else:
-            ##    if cv2.waitKey(1) & 0xFF == ord('q'):
-            ##        break
+            img = Image.fromarray(env, 'RGB')  # reading to rgb. Apparently. Even tho color definitions are bgr. ???
+            ##img = img.resize((300, 300))  # resizing so we can see our agent in all its glory.
+            ##https://www.youtube.com/watch?v=G92TF4xYQcU&list=PLQVvvaa0QuDezJFIOU5wDdfy4e9vdnx-7&index=5 - For anyone that's having blurry boxes displayed, changed your code to img = img.resize((300, 300), resample=Image.BOX)
+            img = img.resize((300, 300), resample=Image.BOX)  # resizing so we can see our agent in all its glory.
+            cv2.imshow("image", np.array(img))  # show it!
+            ##https://github.com/jupyter/notebook/issues/3935
+            ##cv2_imshow(np.array(img))
+            if reward == FOOD_REWARD or reward == -ENEMY_PENALTY:  # crummy code to hang at the end if we reach abrupt end for good reasons or not.
+                if cv2.waitKey(500) & 0xFF == ord('q'):
+                    break
+            else:
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
 
         episode_reward += reward
         if reward == FOOD_REWARD or reward == -ENEMY_PENALTY:
@@ -251,9 +287,7 @@ plt.ylabel(f"Reward {SHOW_EVERY}ma")
 plt.xlabel("episode #")
 plt.show()
 
-
-with open(f"qtable-{int(time.time())}.json", "wb") as f:
-    ujson.dump(q_table, f)
-
+with open(f"qtable-{int(time.time())}.pickle", "wb") as f:
+    pickle.dump(q_table, f)
 
 sense.clear(0, 0, 0)
