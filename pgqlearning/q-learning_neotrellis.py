@@ -190,7 +190,7 @@ for episode in range(HM_EPISODES):
         player.action(action)
 
         #### MAYBE ###
-        enemy.move()
+        ##enemy.move()
         food.move()
         ##############
 
